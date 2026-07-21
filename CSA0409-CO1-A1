@@ -1,0 +1,78 @@
+1 (c) #include<stdio.h>
+  #include<unistd.h>
+  int main()
+{
+  int pid=fork();
+if(pid==o)
+  printf("child PID=%d\n",getpid());
+else
+  printf("parent PID=%d\n",getpid());
+return  0;
+}
+
+1 a) multi user operating system it allows the mutliple students to use the same linux server simultaneously
+1b) two types 1 process management  2 memory management
+
+
+2a)open(),write(),read(),close()
+2b)open creates a file 
+write writes the data into file 
+2c)#include<stdio.h>
+  #include<unistd.h>
+  int main()
+{
+  int fd=open("student.txt",o_create|o_write only,0664);
+write(fd,"pallavi",7);
+close(fd);
+}
+
+
+
+3a)open(),write(),read(),close()
+  3b)open creates a file 
+write writes the data into file 
+3c) #inlude<stdio.h>
+   #include<unistd.h>
+  int main()
+{
+  char ch;
+int f1=open("a.txt",o_RDONLY);
+int f2=open("b.txt",o_CREAT|O_WRONLY,0644);
+ while (read (f1,&ch,1))
+   write(f2,&ch,1);
+close(f1);
+close(f2):
+}
+
+4a) fork() create a child process 
+exec() replaces the current process with a new program 
+4b) wait() it makes the parent process wait until the child process finishes the execution 
+4c) #include<stdio.h>
+    #include<unistd.h>
+int main()
+{
+  if(fork()==o)
+    execl("/bin/1s","1s",NULL);
+else 
+    wait(NULL);
+return 0;
+}
+
+
+5a) files can store the data and it can be maintain the file security
+5b) open() open a file  reading or writing
+    close() closes the file and releases the resuorces 
+5c)#include<fcntl.h>
+   #include<unistd.h>
+int main()
+{
+char buf[100];
+int fd=open ("a,txt",O_RDONLY);
+read (fd,buf,100);
+write(1,buf,100);
+close (fd);
+}
+
+
+
+
