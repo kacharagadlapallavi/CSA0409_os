@@ -1,0 +1,262 @@
+ Q1. Deadlock Debugging 
+
+#Cause of Deadlock
+
+Deadlock occurs because both processes acquire resources in different orders.
+
+Execution Sequence:
+
+1. P1 locks R1.
+2. P2 locks R2.
+3. P1 tries to lock R2 and waits.
+4. P2 tries to lock R1 and waits.
+5. Both processes wait indefinitely.
+
+ Deadlock Condition
+
+The deadlock is caused by **Circular Wait**:
+
+* P1 holds R1 and waits for R2.
+* P2 holds R2 and waits for R1.
+
+This satisfies the Coffman deadlock conditions:
+
+1. Mutual Exclusion 
+2. Hold and Waits
+3. No Preemption 
+4. Circular Wait 
+
+ Optimization
+
+Use a **fixed resource ordering**.
+
+**Modified Code:**
+
+Process P1:
+
+
+lock(R1)
+lock(R2)
+critical section
+unlock(R2)
+unlock(R1)
+
+
+Process P2:
+
+
+lock(R1)
+lock(R2)
+critical section
+unlock(R2)
+unlock(R1)
+
+
+ Result
+
+Since both processes request resources in the same order, circular wait is eliminated and deadlock cannot occur.
+
+
+
+# Q2. CPU Utilization Problem 
+
+ Observation
+
+CPU Utilization = **30%**
+Scheduler Log:
+Ready → Waiting → Ready → Waiting → Ready
+ Root Cause
+Processes are spending most of their time waiting for I/O operations.
+
+The system is **I/O-bound** rather than CPU-bound.
+ Debug Analysis
+
+* Process becomes ready.
+* Runs briefly.
+* Requests I/O.
+* Moves to waiting state.
+* CPU becomes idle frequently.
+
+Thus, CPU remains underutilized despite having ready processe
+Optimization
+
+1. Increase Degree of Multiprogram
+* Load more processes into memory.
+* While one process waits for I/O, another can use CPU.
+ 2. Use Asynchronous I/O
+* Process continues execution while I/O occurs in the background.
+* Reduces waiting time.
+ Result
+CPU utilization increases because CPU always has work to execute
+
+
+ Q3. Memory Bottleneck Debugging 
+Code Segment = 5 MB
+Heap = 150 MB
+Stack = 1 MB per threads
+Number of Threads = 25
+Physical RAM = 2 GB
+  Memory Calculation
+Stack Memory:
+25 × 1 MB = 25 Mm
+Total Memory:
+Code + Heap + Stack
+= 5 + 150 + 25
+= 180 MB
+ Root Cause
+Although memory usage (180 MB) is below 2 GB, the program experiences many page faults because:
+ Large heap usage.
+ Multiple threads accessing different memory pages.
+ Poor memory locality.
+ Frequent page replacement.
+Performance Issue
+Excessive page faults cause disk access and slow execution.
+ Optimizations
+ 1. Reduce Heap Usage
+* Free unused objects.
+* Use efficient data structures.
+* Avoid memory leaks.
+ 2. Reduce Number of Threads
+* Use Thread Pool.
+* Reuse existing threads.
+  Result
+Fewer page faults and improved performance.
+
+---
+
+ Q4. Starvation Debugging 
+
+Q1 → Interactive (Highest Priority)
+
+Q2 → System
+
+Q3 → Batch (P5)
+
+Scheduling:
+
+
+Q1 = 5 ms
+Q2 = 10 ms
+Q3 = FCFS
+```
+
+### Root Cause
+
+P5 belongs to Q3.
+
+Whenever new processes arrive in Q1 or Q2:
+
+* Scheduler serves higher-priority queues first.
+* Q3 never gets CPU access.
+
+Thus P5 waits indefinitely.
+
+ Problem Identified
+
+**Starvation**
+
+A low-priority process is continuously postponed.
+
+ Optimization
+
+ Aging Technique
+
+Increase priority of waiting processes over time.
+
+Example:
+
+
+Waiting 30 sec → Move Q3 → Q2
+Waiting 60 sec → Move Q2 → Q1
+```
+
+Result
+
+Every process eventually receives CPU time.
+
+ Conclusion
+
+Aging prevents starvation and ensures fairness.
+
+
+
+# Q5. Context-Switch Overhead Debugging 
+
+
+
+Context Switches = 20,000/sec
+
+Average CPU Burst = 2 ms
+
+Time Quantum = 1 ms
+
+I/O Frequency = Very High
+
+root Cause
+
+The time quantum (1 ms) is smaller than the average burst time (2 ms).
+
+Execution:
+
+
+Run 1 ms
+Preempt
+Context Switch
+
+Run 1 ms
+Preempt
+Context Switch
+
+
+Additionally:
+
+* Frequent I/O requests
+* Threads repeatedly enter waiting state
+* More context switches occur
+
+Why Context Switching is High
+
+1. Very small time quantum.
+2. Frequent preemption.
+3. High I/O activity.
+4. Large number of runnable threads.
+
+Optimizations
+
+1. Increase Time Quantum
+
+Example:
+
+
+1 ms → 5 ms
+
+
+Benefits:
+
+* Fewer preemptions.
+* Reduced context-switch overhead.
+
+. Reduce I/O Blocking
+
+* Use asynchronous I/O.
+* Buffer requests.
+* Batch I/O operations.
+
+Result
+
+* Lower context-switch rate.
+* Better CPU efficiency.
+* Improved throughput.
+
+---
+
+# Summary Table
+
+| Question | Problem                 | Root Cause                         | Optimization                |
+| -------- | ----------------------- | ---------------------------------- | --------------------------- |
+| Q1       | Deadlock                | Circular wait between R1 and R2    | Resource ordering           |
+| Q2       | Low CPU Utilization     | I/O-bound processes                | Multiprogramming, Async I/O |
+| Q3       | Memory Bottleneck       | Excessive page faults              | Reduce heap, Thread pool    |
+| Q4       | Starvation              | Low-priority queue never scheduled | Aging                       |
+| Q5       | Context-Switch Overhead | Small quantum and frequent I/O     | Increase quantum, Async I/O |
+m
