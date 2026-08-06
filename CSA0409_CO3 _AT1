@@ -1,0 +1,194 @@
+Q1) #include <stdio.h>
+
+int main() 
+{
+    int base, limit, logical, physical;
+
+    printf("Enter Base Register: ");
+    scanf("%d", &base);
+
+    printf("Enter Limit Register: ");
+    scanf("%d", &limit);
+
+    printf("Enter Logical Address: ");
+    scanf("%d", &logical);
+
+    if (logical >= 0 && logical < limit) {
+        physical = base + logical;
+        printf("Valid Address\n");
+        printf("Physical Address = %d\n", physical);
+    } else {
+        printf("Invalid Logical Address\n");
+    }
+
+    return 0;
+}
+Sample Output
+Enter Base Register: 1000
+Enter Limit Register: 500
+Enter Logical Address: 250
+
+Valid Address
+Physical Address = 1250
+Q2)  #include <stdio.h>
+    int main() {
+    int pageSize, pages;
+    int pageTable[20];
+    int pageNo, offset, physical;
+
+    printf("Enter Page Size: ");
+    scanf("%d", &pageSize);
+
+    printf("Enter Number of Pages: ");
+    scanf("%d", &pages);
+
+    printf("Enter Frame Numbers:\n");
+    for (int i = 0; i < pages; i++) {
+        printf("Page %d -> Frame: ", i);
+        scanf("%d", &pageTable[i]);
+    }
+
+    printf("Enter Page Number: ");
+    scanf("%d", &pageNo);
+
+    printf("Enter Offset: ");
+    scanf("%d", &offset);
+
+    if (pageNo >= pages || offset >= pageSize) {
+        printf("Invalid Address\n");
+    } else {
+        physical = pageTable[pageNo] * pageSize + offset;
+        printf("Physical Address = %d\n", physical);
+    }
+
+    return 0;
+} 
+Sample Output
+Page Size: 100
+Pages: 3
+
+Page0 -> Frame 4
+Page1 -> Frame 2
+Page2 -> Frame 7
+
+Page Number: 2
+Offset: 20
+
+Physical Address = 720
+
+  
+  Q3) #include <stdio.h>
+int main() {
+    int n, pageTable[20];
+    int pageNo, offset, pageSize;
+
+    printf("Enter Number of Pages: ");
+    scanf("%d", &n);
+
+    printf("Enter Page Size: ");
+    scanf("%d", &pageSize);
+
+    printf("Enter Frame Numbers:\n");
+
+    for (int i = 0; i < n; i++) {
+        printf("Page %d -> Frame: ", i);
+        scanf("%d", &pageTable[i]);
+    }
+
+    printf("Enter Page Number: ");
+    scanf("%d", &pageNo);
+
+    printf("Enter Offset: ");
+    scanf("%d", &offset);
+
+    if (pageNo >= n || offset >= pageSize) {
+        printf("Invalid Address\n");
+    } else {
+        printf("Page %d is mapped to Frame %d\n",
+               pageNo, pageTable[pageNo]);
+
+        printf("Physical Address = %d\n",
+               pageTable[pageNo] * pageSize + offset);
+    }
+
+    return 0;
+}
+Sample Output
+Page 1 is mapped to Frame 5
+Physical Address = 530
+  Q4) #include <stdio.h>
+
+     int main() {
+    float hitRatio;
+    int memoryTime, tlbTime;
+    float withoutTLB, withTLB;
+
+    printf("Enter Memory Access Time (ns): ");
+    scanf("%d", &memoryTime);
+
+    printf("Enter TLB Access Time (ns): ");
+    scanf("%d", &tlbTime);
+
+    printf("Enter TLB Hit Ratio (0-1): ");
+    scanf("%f", &hitRatio);
+
+    withoutTLB = 2 * memoryTime;
+
+    withTLB = hitRatio * (tlbTime + memoryTime)
+            + (1 - hitRatio) * (tlbTime + 2 * memoryTime);
+
+    printf("\nWithout TLB = %.2f ns\n", withoutTLB);
+    printf("With TLB    = %.2f ns\n", withTLB);
+
+    return 0;
+}
+Sample Output
+Memory Time = 100
+TLB Time = 20
+Hit Ratio = 0.9
+
+Without TLB = 200.00 ns
+With TLB = 130.00 ns
+Q5) #include <stdio.h>
+     int main() {
+    int base, limit, logical;
+
+    printf("Enter Base Register: ");
+    scanf("%d", &base);
+
+    printf("Enter Limit Register: ");
+    scanf("%d", &limit);
+
+    printf("Enter Logical Address: ");
+    scanf("%d", &logical);
+
+    if (logical >= 0 && logical < limit) {
+        printf("Access Granted\n");
+        printf("Physical Address = %d\n", base + logical);
+    } else {
+        printf("Access Denied\n");
+        printf("Memory Protection Fault\n");
+    }
+
+    return 0;
+}
+Sample Output
+
+Valid Address
+
+Base Register: 1000
+Limit Register: 300
+Logical Address: 150
+
+Access Granted
+Physical Address = 1150
+
+Invalid Address
+
+Base Register: 1000
+Limit Register: 300
+Logical Address: 350
+
+Access Denied
+Memory Protection Fault
+
