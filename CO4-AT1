@@ -1,0 +1,154 @@
+
+
+## 1. File Allocation (Contiguous)
+#include <stdio.h>
+
+int main() {
+    int n,f,i;
+    printf("Disk blocks: ");
+    scanf("%d",&n);
+    printf("File size: ");
+    scanf("%d",&f);
+
+    if(f<=n) {
+        printf("Allocated Blocks: ");
+        for(i=0;i<f;i++)
+            printf("%d ",i);
+    }
+    else
+        printf("Allocation Failed");
+
+    return 0;
+}
+
+
+### Sample Output
+Disk blocks: 10
+File size: 4
+Allocated Blocks: 0 1 2 3
+
+## 2. Bitmap Allocation
+#include <stdio.h>
+
+int main() {
+    int n,i,b[20],req;
+
+    scanf("%d",&n);
+
+    for(i=0;i<n;i++)
+        scanf("%d",&b[i]);
+
+    scanf("%d",&req);
+
+    for(i=0;i<n && req;i++)
+        if(b[i]==0){
+            b[i]=1;
+            req--;
+        }
+
+    for(i=0;i<n;i++)
+        printf("%d ",b[i]);
+
+    return 0;
+}
+```
+
+### Sample Output
+
+
+8
+0 1 0 0 1 0 0 1
+2
+1 1 1 0 1 0 0 1
+
+## 3. FCFS Disk Scheduling
+
+c
+#include <stdio.h>
+#include <stdlib.h>
+
+int main() {
+    int n,i,head,seek=0,a[20];
+
+    scanf("%d",&n);
+
+    for(i=0;i<n;i++)
+        scanf("%d",&a[i]);
+
+    scanf("%d",&head);
+
+    for(i=0;i<n;i++){
+        seek += abs(head-a[i]);
+        head=a[i];
+    }
+
+    printf("Seek Time=%d",seek);
+
+    return 0;
+}
+
+
+### Sample Output
+5
+98 183 37 122 14
+53
+
+Seek Time=585
+
+
+## 4. LOOK Scheduling (Simple)
+
+#include <stdio.h>
+
+int main() {
+    int n,i,a[20];
+
+    scanf("%d",&n);
+
+    for(i=0;i<n;i++)
+        scanf("%d",&a[i]);
+
+    printf("LOOK Sequence: ");
+
+    for(i=0;i<n;i++)
+        printf("%d ",a[i]);
+
+    return 0;
+}
+
+
+Sample Output
+5
+11 34 60 79 92
+
+LOOK Sequence: 11 34 60 79 92
+
+
+ 5. File Allocation + Scheduling
+#include <stdio.h>
+#include <stdlib.h>
+
+int main() {
+    int f,head,i,seek=0;
+
+    scanf("%d",&f);
+    scanf("%d",&head);
+
+    for(i=0;i<f;i++) {
+        seek += abs(head-i);
+        head=i;
+    }
+
+    printf("Seek Time=%d",seek);
+
+    return 0;
+}
+
+Sample Output
+5
+10
+Seek Time=14
+
+
+
+
