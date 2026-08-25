@@ -1,0 +1,843 @@
+ Q1. Optimized Linux File System Layout for a 50 GB Server
+ Problem Understanding
+The server has a total storage capacity of **50 GB** and must handle three major categories of data:
+Rapidly growing system logs
+User files
+ Application data
+The major constraints are:
+
+1. Total storage available = **50 GB**
+2. Log files must **never exceed 10 GB**
+3. Critical services must continue operating even when logs grow rapidly.
+4. Storage must be efficiently utilized.
+5. Disk exhaustion must be prevented.
+
+ Proposed Partition Layout
+
+| Partition           |      Size | Purpose                                             |
+| ------------------- | --------: | --------------------------------------------------- |
+| `/`                 |      8 GB | Linux operating system and system files             |
+| `/var`              |      8 GB | Variable data, package information and service data |
+| `/var/log`          |      8 GB | System and application logs                         |
+| `/home`             |     12 GB | User files                                          |
+| `/opt`              |      6 GB | Application data/software                           |
+| `swap`              |      4 GB | Virtual memory                                      |
+| Reserved/free space |      4 GB | Emergency storage and future growth                 |
+| **Total**           | **50 GB** |                                                     |
+
+ Recommended Architecture
+
+text
+                 50 GB Disk
+                     |
+        +------------+------------+
+        |                         |
+   System Storage             Data Storage
+        |                         |
+   +----+----+              +-----+------+
+   |         |              |            |
+   /       swap           /home        /opt
+  8 GB      4 GB          12 GB        6 GB
+                  |
+               /var
+                8 GB
+                  |
+              /var/log
+                8 GB
+                  |
+           Log Rotation
+```
+
+ Log Management Strategy
+A separate `/var/log` partition of **8 GB** is recommended. This prevents rapidly growing logs from consuming the space required by the operating system.
+
+Linux `logrotate` can be configured to:
+
+* Rotate logs daily.
+* Keep a fixed number of old log files.
+* Compress old logs.
+* Delete old logs automatically.
+* Create new log files without stopping critical services.
+
+Example configuration:
+`text
+/var/log/*.log {
+    daily
+    rotate 7
+    compress
+    delaycompress
+    missingok
+    notifempty
+    maxsize 1G
+    copytruncate
+}
+
+The `maxsize` parameter ensures that a log is rotated when it becomes too large. Monitoring should also be configured so that the total `/var/log` usage remains below the required **10 GB limit**.
+
+A practical safety policy is to treat **8 GB as the hard working limit** and reserve emergency space elsewhere. This provides a safety margin before the 10 GB constraint is reached.
+
+## Storage Monitoring Tools
+
+The administrator can use:
+
+`df -h` checks filesystem utilization, while `du` identifies which directories or files are consuming space. `lsblk` displays the disk and partition structure.
+
+A monitoring script can generate an alert when `/var/log` reaches, for example, **80% capacity**.
+
+Justification
+
+Separating `var log` from `/` is the most important design decision. If logs consume all available space on the root filesystem, Linux services may fail because they cannot create temporary files, PID files, sockets, or other required data.
+
+The proposed layout provides:
+
+* Dedicated log storage
+* Controlled log growth
+* Space for users and applications
+* Swap space for memory pressure
+* Emergency free space
+* Better fault isolation
+ Conclusion
+
+The proposed partitioning and `logrotate` strategy prevents uncontrolled log growth from affecting critical operating-system files. Regular monitoring using `df`, `du`, and automated log rotation ensures that the **10 GB log constraint is maintained** and critical services can continue operating.
+
+
+
+# Q2. Kernel-Level Optimization for a High-CPU Linux System
+
+## Problem Understanding
+
+The Linux system experiences:
+
+* High CPU workload
+* Frequent context switching
+* Context-switching delays
+* No possibility of hardware upgrades
+* Requirement for real-time processing
+
+Therefore, optimization must be performed at the **kernel and process-scheduling level**.
+
+## Constraint Analysis
+
+The important constraints are:
+
+1. Hardware cannot be upgraded.
+2. CPU resources are limited.
+3. Context switching must be reduced.
+4. Real-time tasks require predictable response time.
+5. Critical processes must receive appropriate CPU priority.
+
+## Proposed Optimization Strategy
+
+### 1. Scheduler Tuning
+
+Linux uses a scheduler to determine which process gets CPU time.
+
+CPU-intensive processes can be controlled using:
+
+```bash
+nice
+renice
+```
+
+For example:
+
+bash
+renice -n 5 -p PID
+This can reduce the priority of a non-critical CPU-intensive process.
+
+Real-time processes can use scheduling policies such as:
+bash
+chrt
+
+For example:
+bash
+chrt -f 50 ./realtime_program
+`SCHED_FIFO` can provide real-time scheduling for suitable applications.
+
+### 2. CPU Affinity
+
+A process can be restricted to selected CPU cores using:
+
+```bash
+taskset
+```
+
+Example:
+
+```bash
+taskset -c 0,1 ./application
+```
+
+This reduces unnecessary migration of processes between CPUs and can improve cache utilization.
+
+### 3. Reduce Unnecessary Context Switching
+
+Context switching occurs when the CPU switches from one process/thread to another.
+
+To reduce unnecessary switching:
+
+* Reduce excessive thread creation.
+* Use thread pools.
+* Avoid unnecessary background processes.
+* Use CPU affinity.
+* Tune process priorities.
+* Avoid unnecessarily short time slices for workloads that benefit from longer CPU bursts.
+
+### 4. Kernel Parameter Tuning
+
+Kernel parameters can be examined and modified using:
+
+```bash
+sysctl
+```
+
+For example:
+
+```bash
+sysctl -a
+```
+
+Important parameters should be changed carefully after measuring their impact.
+
+### 5. Kernel Modules
+
+Linux kernel modules allow functionality to be added or removed without rebuilding the complete kernel.
+
+Useful commands include:
+
+```bash
+lsmod
+modinfo module_name
+modprobe module_name
+rmmod module_name
+```
+
+Only required modules should be loaded because unnecessary modules consume memory and may introduce unnecessary overhead.
+
+### 6. Real-Time Kernel
+
+For strict real-time applications, a Linux kernel configured for real-time operation, such as a **PREEMPT_RT-enabled kernel**, can reduce scheduling latency and provide more predictable task execution.
+
+## Monitoring
+
+The following tools can identify scheduling problems:
+
+```bash
+top
+htop
+vmstat
+pidstat
+perf
+```
+
+For example:
+
+```bash
+vmstat 1
+```
+
+can help observe CPU utilization and context-switch activity.
+
+## Recommended Strategy
+
+```text
+High CPU Workload
+       |
+       v
+Measure CPU & Context Switching
+       |
+       v
+Identify CPU-intensive Processes
+       |
+       +----> nice / renice
+       |
+       +----> CPU Affinity
+       |
+       +----> Scheduler Policy
+       |
+       +----> Kernel Parameter Tuning
+       |
+       +----> Required Kernel Modules
+       |
+       v
+Test Real-Time Latency
+       |
+       v
+Monitor Performance
+```
+
+## Justification
+
+The combination of **scheduler tuning, CPU affinity, process priorities, kernel configuration, and appropriate kernel modules** can improve CPU utilization without additional hardware.
+
+For real-time workloads, CPU isolation/affinity and real-time scheduling are particularly important because they reduce competition between critical tasks and ordinary background workloads.
+
+### Conclusion
+
+Kernel-level optimization should be performed based on measurement rather than blindly changing parameters. By controlling scheduling priority, CPU affinity, kernel configuration, and unnecessary modules, context-switching overhead can be reduced while preserving real-time performance.
+
+---
+
+# Q3. Processing 1 Million Log Entries Using Shell Scripting
+
+## Problem Understanding
+
+The administrator must process **1 million log entries per day** using only shell scripting.
+
+The major constraint is:
+
+> The script must complete within **2 minutes**.
+
+Therefore, inefficient techniques such as processing every line using a separate shell process should be avoided.
+
+## Constraint Analysis
+
+1. Input size = **1,000,000 log entries**
+2. Processing method = Shell scripting
+3. Maximum execution time = **120 seconds**
+4. Commands must be optimized.
+5. Unnecessary process creation must be minimized.
+
+The minimum average processing rate required is:
+
+[
+\frac{1,000,000}{120} \approx 8,333
+]
+
+Therefore, the solution should process at least approximately **8,333 entries per second**.
+
+## Efficient Commands
+
+The preferred tools are:
+
+* `awk`
+* `grep`
+* `sort`
+* `uniq`
+* `cut`
+* `wc`
+
+Among these, `awk` is particularly useful because it can read and process the complete file in a single process.
+
+### Example
+
+Suppose the log contains:
+
+```text
+2026-08-25 10:00:01 ERROR Database connection failed
+2026-08-25 10:00:02 INFO User logged in
+2026-08-25 10:00:03 ERROR File not found
+```
+
+To count error messages:
+
+```bash
+awk '$3 == "ERROR" {count++} END {print count}' logfile.log
+```
+
+To count different log levels:
+
+```bash
+awk '{count[$3]++} END {
+    for (level in count)
+        print level, count[level]
+}' logfile.log
+```
+
+## Optimized Pipeline
+
+A suitable pipeline is:
+
+```bash
+awk '$3=="ERROR" {count++} END {print "Errors:", count}' logfile.log
+```
+
+If searching for a particular pattern:
+
+```bash
+grep -c 'ERROR' logfile.log
+```
+
+For extracting and counting values:
+
+```bash
+awk '{count[$3]++} END {for (x in count) print x, count[x]}' logfile.log
+```
+
+## Why `awk` Is Preferred
+
+A poor implementation would be:
+
+```bash
+while read line
+do
+    ...
+done < logfile.log
+```
+
+with multiple external commands inside the loop.
+
+For example, repeatedly executing `grep`, `cut`, or `sed` for every line can create a very large number of processes and significantly increase execution time.
+
+Instead, `awk` performs pattern matching, field extraction, counting, and aggregation within a **single process**.
+
+## Performance Optimization Techniques
+
+### 1. Avoid unnecessary pipelines
+
+Instead of:
+
+```bash
+cat logfile.log | grep ERROR | wc -l
+```
+
+use:
+
+```bash
+grep -c ERROR logfile.log
+```
+
+The second approach avoids the unnecessary `cat` process.
+
+### 2. Process the file sequentially
+
+Log processing should normally be performed as a single streaming operation instead of repeatedly reading the same file.
+
+### 3. Avoid per-line external commands
+
+Avoid:
+
+```bash
+while read line
+do
+    grep ...
+    cut ...
+done
+```
+
+Use one `awk` command whenever possible.
+
+### 4. Redirect output
+
+If intermediate output is not required, avoid unnecessary terminal output because printing millions of lines is expensive.
+
+### 5. Use `LC_ALL=C` when appropriate
+
+For large text-processing workloads:
+
+```bash
+LC_ALL=C grep -c 'ERROR' logfile.log
+```
+
+can reduce locale-related processing overhead.
+
+## Proposed Script
+
+```bash
+#!/bin/bash
+
+LOGFILE="/var/log/application.log"
+
+echo "Total entries:"
+wc -l < "$LOGFILE"
+
+echo "Log level statistics:"
+awk '{
+    count[$3]++
+}
+END {
+    for (level in count)
+        print level, count[level]
+}' "$LOGFILE"
+
+echo "Total errors:"
+grep -c 'ERROR' "$LOGFILE"
+
+For a production implementation, the exact field position should be adjusted according to the actual log format.
+
+## Justification
+
+The main performance principle is **minimizing process creation and unnecessary data movement**.
+
+`awk` is efficient because it processes the file sequentially and performs multiple operations in one process. `grep -c` directly counts matching lines without sending the entire matching output to another process.
+
+The actual completion time should be benchmarked on the target server using:
+
+```bash
+time ./logprocess.sh
+```
+
+The script satisfies the two-minute requirement only after measurement confirms that the target machine can process the workload within **120 seconds**.
+
+### Conclusion
+
+For 1 million log entries, optimized tools such as `awk` and `grep -c` are preferable to line-by-line shell loops. Minimizing process creation, avoiding unnecessary pipelines, and processing data in a single pass provide the best chance of meeting the **2-minute constraint**.
+
+---
+
+# Q4. Managing a Faulty Process Consuming 90% CPU
+
+## Problem Understanding
+
+A Linux server has multiple background services, and one faulty process is consuming approximately **90% CPU**.
+
+The constraints are:
+
+1. The system must not be restarted.
+2. Critical services must continue running.
+3. The faulty process must be identified.
+4. Its CPU consumption must be controlled.
+5. The administrator should avoid unnecessarily terminating critical processes.
+
+## Step 1: Identify the Process
+
+Use:
+
+```bash
+top
+```
+
+or:
+
+```bash
+ps aux --sort=-%cpu | head
+```
+
+Example output:
+
+```text
+USER   PID   %CPU   COMMAND
+user   2456  90.0   faulty_app
+root   1020   5.0   system_service
+```
+
+The PID of the faulty process is therefore identified as:
+
+text
+2456
+```
+
+## Step 2: Monitor the Process
+
+Use:
+
+```bash
+top -p 2456
+```
+
+or:
+
+```bash
+pidstat -p 2456 1
+```
+
+This determines whether the CPU usage remains continuously high.
+
+Additional information can be obtained using:
+
+```bash
+ps -p 2456 -o pid,ppid,stat,%cpu,%mem,cmd
+```
+
+## Step 3: Check Whether It Is a Critical Process
+
+Before terminating anything, determine:
+
+* Process owner
+* Parent process
+* Command
+* Associated service
+* Whether it is required by a critical application
+
+Commands:
+
+```bash
+ps -fp 2456
+```
+
+and:
+
+```bash
+systemctl status service_name
+```
+
+## Step 4: Reduce CPU Priority
+
+If the process is not immediately required to run at high priority:
+
+```bash
+renice +10 -p 2456
+```
+
+A higher nice value gives the process lower CPU scheduling priority.
+
+This allows critical processes to receive CPU time.
+
+## Step 5: Restrict CPU Usage
+
+If available on the system, `systemd` resource controls or `cpulimit` can be used.
+
+For a systemd-managed service, CPU quota can be applied using an appropriate service configuration, for example:
+
+```text
+CPUQuota=20%
+```
+
+This limits the service's CPU consumption.
+
+CPU affinity can also be used:
+
+```bash
+taskset -cp 0 2456
+```
+
+This restricts the process to CPU core 0.
+
+## Step 6: Graceful Termination
+
+If the process is confirmed to be faulty and non-critical, first attempt:
+
+```bash
+kill -TERM 2456
+```
+
+`SIGTERM` allows the process an opportunity to shut down cleanly.
+
+Check:
+
+```bash
+ps -p 2456
+```
+
+If it does not respond and it is safe to terminate:
+
+```bash
+kill -KILL 2456
+```
+
+`SIGKILL` should be the last option because the process cannot clean up before termination.
+
+## Process Management Strategy
+
+```text
+High CPU Detected
+       |
+       v
+Identify PID using top/ps
+       |
+       v
+Monitor with pidstat
+       |
+       v
+Check process importance
+       |
+   +---+---+
+   |       |
+Critical  Non-critical
+   |       |
+   |       v
+   |    Reduce priority
+   |    /CPU quota
+   |       |
+   v       v
+Protect critical services
+       |
+       v
+If necessary → SIGTERM
+       |
+       v
+Force kill only if required
+```
+
+## Justification
+
+Restarting the entire system is unnecessary and may interrupt all services.
+
+A better strategy is to isolate and control only the problematic process. Using `top`, `ps`, and `pidstat` allows the administrator to identify and monitor the process. `renice`, CPU affinity, and resource limits can control CPU consumption while protecting critical services.
+
+### Conclusion
+
+The preferred approach is **identify → monitor → verify → limit → terminate if necessary**. This minimizes service disruption and allows the Linux system to remain operational without a reboot.
+
+---
+
+# Q5. Resource Allocation for 5 Virtual Machines
+
+## Problem Understanding
+
+The physical server has:
+
+* Total RAM = **16 GB**
+* Number of VMs = **5**
+* Minimum RAM per VM = **2 GB**
+* Host operating system requirement = **4 GB**
+
+We need to determine whether all VMs can run smoothly.
+
+## Constraint Analysis
+
+Memory required by VMs:
+
+[
+5 \times 2 = 10\text{ GB}
+]
+
+Memory required by host:
+
+[
+4\text{ GB}
+]
+
+Total minimum requirement:
+
+[
+10 + 4 = 14\text{ GB}
+]
+
+Available RAM:
+
+[
+16\text{ GB}
+]
+
+Remaining RAM:
+
+[
+16 - 14 = 2\text{ GB}
+]
+
+Therefore, **all five VMs can be hosted**, provided each receives its minimum 2 GB and the host retains 4 GB.
+
+## Proposed Allocation
+
+| Component         |       RAM |
+| ----------------- | --------: |
+| Host OS           |      4 GB |
+| VM1               |      2 GB |
+| VM2               |      2 GB |
+| VM3               |      2 GB |
+| VM4               |      2 GB |
+| VM5               |      2 GB |
+| Available reserve |      2 GB |
+| **Total**         | **16 GB** |
+
+## Recommended Virtualization Architecture
+
+```text
+                 Physical Server
+                    16 GB RAM
+                        |
+              +---------+---------+
+              |                   |
+          Host OS              VM Resources
+           4 GB                   10 GB
+                                  |
+              +---------+---------+---------+---------+
+              |         |         |         |         |
+            VM1       VM2       VM3       VM4       VM5
+            2 GB      2 GB      2 GB      2 GB      2 GB
+
+                 2 GB Reserve
+```
+
+## Efficient Resource Allocation Strategy
+
+### 1. Allocate 4 GB to Host
+
+The host requires 4 GB to operate the virtualization software and essential services.
+
+This memory should not be overcommitted because starving the host can affect all VMs.
+
+### 2. Allocate 2 GB Minimum to Each VM
+
+Each VM receives:
+
+```text
+VM1 = 2 GB
+VM2 = 2 GB
+VM3 = 2 GB
+VM4 = 2 GB
+VM5 = 2 GB
+```
+
+Total:
+
+```text
+10 GB
+```
+
+### 3. Keep 2 GB as Reserve
+
+The remaining 2 GB should preferably be kept available for:
+
+* Temporary workload increases
+* Host memory requirements
+* VM overhead
+* Caching
+* Memory pressure management
+
+### 4. Use Dynamic Memory Carefully
+
+If the virtualization platform supports dynamic memory/ballooning, memory can be adjusted according to workload.
+
+For example, a VM requiring more memory temporarily can receive additional memory from the available pool, provided the host and other VMs remain within safe limits.
+
+### 5. Avoid Excessive Memory Overcommitment
+
+Although virtualization platforms can sometimes overcommit memory, it is not recommended here because every VM has a **minimum requirement of 2 GB**.
+
+The safer allocation is:
+
+[
+4\text{ GB Host} + 10\text{ GB VMs} + 2\text{ GB Reserve} = 16\text{ GB}
+]
+
+## CPU and Resource Management
+
+RAM is the primary constraint in this problem, but overall VM performance should also be monitored.
+
+The administrator should monitor:
+
+* CPU utilization
+* RAM utilization
+* Disk I/O
+* Network usage
+* VM response time
+
+If one VM consumes excessive resources, resource limits can be applied to prevent it from affecting other VMs.
+
+## Justification
+
+A direct allocation of 2 GB to each VM requires 10 GB. The host requires 4 GB, leaving exactly 2 GB of reserve capacity.
+
+Therefore, the allocation satisfies all constraints without requiring memory overcommitment.
+
+The strategy also provides resource isolation: a heavily loaded VM should not be allowed to consume all available memory and affect the other four VMs.
+
+### Conclusion
+
+The physical server can successfully host all five VMs. The optimal safe allocation is:
+
+[
+\boxed{4\text{ GB Host} + 5(2\text{ GB VM}) + 2\text{ GB Reserve} = 16\text{ GB}}
+]
+
+This satisfies the minimum requirements while retaining a **2 GB safety margin**, making the virtualization environment more stable and reliable.
+
+---
+
+ Overall Conclusion
+
+The five problems demonstrate important Linux operating-system concepts including **file-system management, kernel scheduling, shell optimization, process management, and virtualization resource allocation**.
+
+The solutions are designed around the given constraints rather than simply providing theoretical commands. The key principles are:
+
+1. **Separate rapidly growing data such as logs from critical system storage.**
+2. **Use scheduler and kernel-level techniques to improve CPU performance.**
+3. **Use efficient single-pass Linux commands for large-scale log processing.**
+4. **Identify and control faulty processes without unnecessarily restarting the system.**
+5. **Allocate virtualization resources mathematically and preserve a safety margin.**
+
+These approaches improve **system stability, performance, resource utilization, and operational efficiency**, directly supporting CO5 of the Operating Systems course.
+
+
