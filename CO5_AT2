@@ -1,0 +1,108 @@
+1)  File System Space Management Algorithm
+
+BEGIN
+    SET threshold = 80
+    usage = GET_DISK_USAGE()
+
+    IF usage > threshold THEN
+        log_files = GET_ALL_LOG_FILES()
+        SORT log_files BY size DESCENDING
+
+        FOR each file IN log_files DO
+            COMPRESS_OR_DELETE(file)
+
+            usage = GET_DISK_USAGE()
+
+            IF usage <= threshold THEN
+                BREAK
+            ENDIF
+        ENDFOR
+    ELSE
+        PRINT "Disk usage is under control"
+    ENDIF
+
+    PRINT "Disk space management completed"
+END
+
+
+2)Priority-Based CPU Scheduling Algorithm
+
+  BEGIN
+    INPUT process_list
+
+    SORT process_list BY priority DESCENDING
+
+    WHILE process_list IS NOT EMPTY DO
+        process = REMOVE_HIGHEST_PRIORITY(process_list)
+
+        ALLOCATE_CPU(process)
+        EXECUTE(process)
+
+        IF process IS NOT COMPLETED THEN
+            process.priority = process.priority - 1
+            ADD process TO process_list
+            SORT process_list BY priority DESCENDING
+        ENDIF
+    ENDWHILE
+
+    PRINT "All processes executed"
+END
+
+3)RAM Allocation for Virtual Machines
+BEGIN
+    total_RAM = 16 GB
+    host_reserved = 4 GB
+    available_RAM = total_RAM - host_reserved
+
+    INPUT number_of_VMs
+    min_RAM = 2 GB
+
+    FOR i = 1 TO number_of_VMs DO
+        IF available_RAM >= min_RAM THEN
+            ALLOCATE min_RAM TO VM[i]
+            available_RAM = available_RAM - min_RAM
+        ELSE
+            PRINT "Insufficient RAM for VM", i
+        ENDIF
+    ENDFOR
+
+    PRINT "Remaining RAM =", available_RAM
+END
+
+  4)Hypervisor Selection Algorithm
+BEGIN
+    INPUT performance_required
+    INPUT budget
+    INPUT hardware_access
+
+    IF performance_required = HIGH AND hardware_access = TRUE THEN
+        selected_hypervisor = "Type-1 Hypervisor"
+
+    ELSE IF budget = LOW THEN
+        selected_hypervisor = "Type-2 Hypervisor"
+
+    ELSE
+        selected_hypervisor = "Type-1 Hypervisor"
+    ENDIF
+
+    PRINT "Selected Hypervisor =", selected_hypervisor
+END
+  5)Resource Limiting Using Cgroups
+BEGIN
+    INPUT application_list
+
+    FOR each app IN application_list DO
+        CREATE_CGROUP(app)
+
+        SET_CPU_LIMIT(app, 50%)
+        SET_MEMORY_LIMIT(app, 1GB)
+
+        ASSIGN_PROCESS_TO_CGROUP(app)
+
+        PRINT app, "Resource limits applied"
+    ENDFOR
+
+    PRINT "Resource management completed"
+END
+
+  
